@@ -1,17 +1,17 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
-import { LoggerService } from 'src/logger/logger.service';
+
+export type ResolvedLinkRedirect = { url: string; linkId: string };
 
 @Injectable()
 export class LinkService {
+  private readonly logger = new Logger(LinkService.name);
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly redisService: RedisService,
-    private readonly loggerService: LoggerService,
-  ) {
-    this.loggerService.setContext('LinkService');
-  }
+  ) {}
 
   async createShortLink(url: string, customAlias?: string) {
     const { nanoid } = await import('nanoid');
@@ -22,7 +22,7 @@ export class LinkService {
     });
 
     if (existingLink) {
-      this.loggerService.error(`Short code already exists: ${shortCode}`);
+      this.logger.error(`Short code already exists: ${shortCode}`);
       throw new ConflictException('Short code already exists');
     }
 
@@ -33,35 +33,35 @@ export class LinkService {
       },
     });
 
-    await this.redisService.setLink(shortCode, link.original_url);
-    this.loggerService.info(`Short code created and set in cache: ${shortCode}`);
+    await this.redisService.setLink(shortCode, { url: link.original_url, linkId: link.id });
+    this.logger.log(`Short code created and set in cache: ${shortCode}`);
     return link;
   }
 
-  async getLinkByShortCode(shortCode: string) {
-    this.loggerService.info(`Getting link by short code: ${shortCode}`);
+  async getLinkByShortCode(shortCode: string): Promise<ResolvedLinkRedirect> {
+    this.logger.log(`Getting link by short code: ${shortCode}`);
 
-    const cachedLink = await this.redisService.getLink(shortCode);
-    if (cachedLink) {
-      this.loggerService.info(`Link found in cache: ${cachedLink}`);
-      return cachedLink;
+    const cached = await this.redisService.getLink(shortCode);
+    if (cached) {
+      this.logger.log(`Link found in cache: ${cached.url}`);
+      return cached;
     }
 
     const link = await this.prismaService.link.findUnique({
       where: { short_code: shortCode },
     });
     if (!link || link.is_active === false) {
-      this.loggerService.error(`Link not found: ${shortCode}`);
+      this.logger.error(`Link not found: ${shortCode}`);
       throw new NotFoundException('Link not found');
     }
     if (link.expires_at && link.expires_at < new Date()) {
-      this.loggerService.error(`Link has expired: ${shortCode}`);
+      this.logger.error(`Link has expired: ${shortCode}`);
       throw new NotFoundException('Link has expired');
     }
 
-    const url = link.original_url;
-    await this.redisService.setLink(shortCode, url);
-    this.loggerService.info(`Link set in cache: ${shortCode}`);
-    return url;
+    const resolved: ResolvedLinkRedirect = { url: link.original_url, linkId: link.id };
+    await this.redisService.setLink(shortCode, resolved);
+    this.logger.log(`Link set in cache: ${shortCode}`);
+    return resolved;
   }
 }

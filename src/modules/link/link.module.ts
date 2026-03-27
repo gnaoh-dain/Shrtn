@@ -2,10 +2,11 @@ import { Module } from '@nestjs/common';
 import { LinkService } from './link.service';
 import { LinkController } from './link.controller';
 import { PrismaModule } from 'src/prisma/prisma.module';
-import { LoggerModule } from 'src/logger/logger.module';
+import { RedisModule } from 'src/redis/redis.module';
+import { QueueModule } from 'src/queue/queue.module';
 
 @Module({
-  imports: [PrismaModule, LoggerModule],
+  imports: [PrismaModule, QueueModule, RedisModule],
   controllers: [LinkController],
   providers: [LinkService],
 })

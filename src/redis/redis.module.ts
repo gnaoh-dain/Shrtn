@@ -12,6 +12,7 @@ import { RedisService } from './redis.service';
         new Redis({
           host: env.REDIS_HOST,
           port: env.REDIS_PORT,
+          maxRetriesPerRequest: null,
         }),
     },
     RedisService,

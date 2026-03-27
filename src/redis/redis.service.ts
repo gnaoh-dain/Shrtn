@@ -1,17 +1,16 @@
 // redis.service.ts
 import { Inject, Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
-import { ConfigService } from '@nestjs/config';
+import { env } from '../config/env';
+
+export type CachedLinkRedirect = { url: string; linkId: string };
 
 @Injectable()
 export class RedisService {
-  constructor(
-    @Inject('REDIS_CLIENT') private readonly redis: Redis,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {}
 
   private getTTL(): number {
-    return this.configService.get<number>('redis.ttl') || 3600;
+    return env.REDIS_TTL;
   }
 
   // =============================
@@ -39,14 +38,32 @@ export class RedisService {
     return `link:${shortCode}`;
   }
 
-  async getLink(shortCode: string): Promise<string | null> {
+  /**
+   * Returns cached url + linkId. Legacy plain-URL values are treated as miss.
+   */
+  async getLink(shortCode: string): Promise<CachedLinkRedirect | null> {
     const key = this.getLinkKey(shortCode);
-    return this.get(key);
+    const raw = await this.get(key);
+    if (!raw) {
+      return null;
+    }
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (parsed && typeof parsed === 'object' && 'url' in parsed && 'linkId' in parsed) {
+        const o = parsed as { url: unknown; linkId: unknown };
+        if (typeof o.url === 'string' && typeof o.linkId === 'string') {
+          return { url: o.url, linkId: o.linkId };
+        }
+      }
+    } catch {
+      /* legacy non-JSON cache */
+    }
+    return null;
   }
 
-  async setLink(shortCode: string, url: string) {
+  async setLink(shortCode: string, payload: CachedLinkRedirect) {
     const key = this.getLinkKey(shortCode);
-    await this.set(key, url);
+    await this.set(key, JSON.stringify(payload));
   }
 
   async deleteLink(shortCode: string) {
