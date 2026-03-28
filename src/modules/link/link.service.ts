@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { env } from 'src/config/env';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
 
@@ -13,9 +14,10 @@ export class LinkService {
     private readonly redisService: RedisService,
   ) {}
 
-  async createShortLink(url: string, customAlias?: string) {
-    const { nanoid } = await import('nanoid');
-    const shortCode = customAlias || nanoid(6);
+  async createShortLink(url: string, customAlias?: string, authenticatedUserId?: string) {
+    const { customAlphabet } = await import('nanoid');
+    const shortCode =
+      customAlias || customAlphabet('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 8)();
 
     const existingLink = await this.prismaService.link.findUnique({
       where: { short_code: shortCode },
@@ -26,14 +28,31 @@ export class LinkService {
       throw new ConflictException('Short code already exists');
     }
 
-    const link = await this.prismaService.link.create({
-      data: {
-        original_url: url,
-        short_code: shortCode,
-      },
-    });
+    const guestTtlMs = env.GUEST_LINK_TTL_HOURS * 60 * 60 * 1000;
+    // const guestTtlMs = 30000; // 30 seconds
+    const link = authenticatedUserId
+      ? await this.prismaService.link.create({
+          data: {
+            original_url: url,
+            short_code: shortCode,
+            user_id: authenticatedUserId,
+            expires_at: null,
+          },
+        })
+      : await this.prismaService.link.create({
+          data: {
+            original_url: url,
+            short_code: shortCode,
+            expires_at: new Date(Date.now() + guestTtlMs),
+          },
+        });
 
-    await this.redisService.setLink(shortCode, { url: link.original_url, linkId: link.id });
+    const expiresAtIso = link.expires_at ? link.expires_at.toISOString() : null;
+    await this.redisService.setLink(shortCode, {
+      url: link.original_url,
+      linkId: link.id,
+      expiresAt: expiresAtIso,
+    });
     this.logger.log(`Short code created and set in cache: ${shortCode}`);
     return link;
   }
@@ -44,7 +63,7 @@ export class LinkService {
     const cached = await this.redisService.getLink(shortCode);
     if (cached) {
       this.logger.log(`Link found in cache: ${cached.url}`);
-      return cached;
+      return { url: cached.url, linkId: cached.linkId };
     }
 
     const link = await this.prismaService.link.findUnique({
@@ -59,9 +78,13 @@ export class LinkService {
       throw new NotFoundException('Link has expired');
     }
 
-    const resolved: ResolvedLinkRedirect = { url: link.original_url, linkId: link.id };
-    await this.redisService.setLink(shortCode, resolved);
+    const expiresAtIso = link.expires_at ? link.expires_at.toISOString() : null;
+    await this.redisService.setLink(shortCode, {
+      url: link.original_url,
+      linkId: link.id,
+      expiresAt: expiresAtIso,
+    });
     this.logger.log(`Link set in cache: ${shortCode}`);
-    return resolved;
+    return { url: link.original_url, linkId: link.id };
   }
 }

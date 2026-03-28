@@ -22,10 +22,10 @@ export const envSchema = z.object({
     .string()
     .min(32, 'JWT_SECRET must be at least 32 characters')
     .describe('Signing secret for access tokens (auth)'),
-  JWT_EXPIRES_IN: z
-    .string()
-    .default('7d')
-    .describe('JWT expiry passed to jsonwebtoken, e.g. 15m, 7d'),
+  JWT_EXPIRES_IN: z.string().default('7d').describe('JWT expiry passed to jsonwebtoken, e.g. 15m, 7d'),
+
+  /** Guest-created links: expires_at = now + this many hours (logged-in users get no auto-expiry). */
+  GUEST_LINK_TTL_HOURS: z.coerce.number().int().positive().default(168),
 });
 
 export type Env = z.infer<typeof envSchema>;

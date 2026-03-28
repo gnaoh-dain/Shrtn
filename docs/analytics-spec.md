@@ -8,7 +8,7 @@ Tài liệu gắn với RBAC đã triển khai: JWT + `UserRole` (`USER` | `ADMI
 |-----------|--------|
 | `ADMIN` | Xem thống kê mọi `link_id` / `short_code`, và (khi có) tổng hợp toàn hệ thống. |
 | `USER` | Chỉ thống kê của link có `links.user_id` trùng `sub` trong JWT. |
-| Anonymous | Link `user_id` là `null`: không expose qua API user; chỉ `ADMIN` (hoặc không hiển thị — mặc định: **chỉ ADMIN**). |
+| Anonymous | Link `user_id` là `null`: không expose qua API user; chỉ `ADMIN` (hoặc không hiển thị — mặc định: **chỉ ADMIN**). Link tạo khi **không** gửi JWT có `expires_at` theo env `GUEST_LINK_TTL_HOURS`. |
 | Public | `GET /:code` redirect không yêu cầu auth; không trả dữ liệu thống kê. |
 
 ## Chỉ số MVP (API/query sau này)
