@@ -13,15 +13,23 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
   password_hash  String
+  role      UserRole @default(USER)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   links      Link[]   
 
   @@map("users")
+  @@index([email])
+  @@index([created_at])
 }
 
 model Link {
@@ -41,6 +49,9 @@ model Link {
   updated_at DateTime @updatedAt
 
   @@map("links")
+  @@index([short_code])
+  @@index([created_at])
+  @@index([short_code, created_at])
 }
 
 model Blacklist {
@@ -50,16 +61,28 @@ model Blacklist {
   created_at DateTime @default(now())
 
   @@map("blacklist")
+  @@index([url])
+  @@index([created_at])
 }
 
 model ClickLog {
   id         String   @id @default(uuid())
   link_id    String
-  link       Link     @relation(fields: [link_id], references: [id], onDelete: Cascade)
+  short_code String  
   ip_address String
   user_agent String
   referer    String?
+  country    String?
+  device     String?
+  browser    String?
+
   created_at DateTime @default(now())
 
+  link Link @relation(fields: [link_id], references: [id], onDelete: Cascade)
+
   @@map("click_logs")
+  @@index([link_id])
+  @@index([short_code])
+  @@index([created_at])
+  @@index([link_id, created_at])
 }

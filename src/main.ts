@@ -1,3 +1,4 @@
+import { ValidationPipe } from '@nestjs/common';
 import { env } from './config/env';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -11,6 +12,7 @@ async function bootstrap() {
     http.set?.('trust proxy', env.TRUST_PROXY_HOPS);
   }
   app.useLogger(new AppConsoleLogger());
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
 
   const prismaService = app.get(PrismaService);
   prismaService.enableShutdownHooks(app);

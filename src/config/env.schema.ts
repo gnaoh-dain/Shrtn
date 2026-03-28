@@ -17,6 +17,15 @@ export const envSchema = z.object({
   THROTTLE_SHORTEN_LIMIT: z.coerce.number().int().positive().default(30),
 
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(32).default(0),
+
+  JWT_SECRET: z
+    .string()
+    .min(32, 'JWT_SECRET must be at least 32 characters')
+    .describe('Signing secret for access tokens (auth)'),
+  JWT_EXPIRES_IN: z
+    .string()
+    .default('7d')
+    .describe('JWT expiry passed to jsonwebtoken, e.g. 15m, 7d'),
 });
 
 export type Env = z.infer<typeof envSchema>;
