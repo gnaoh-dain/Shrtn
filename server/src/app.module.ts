@@ -6,6 +6,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { env } from './config/env';
 import { AdminModule } from './modules/admin/admin.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { LinkModule } from './modules/link/link.module';
 import { RedisModule } from './redis/redis.module';
@@ -29,6 +30,7 @@ import { QueueModule } from './queue/queue.module';
     PrismaModule,
     AuthModule,
     AdminModule,
+    AnalyticsModule,
     LinkModule,
   ],
   controllers: [AppController],

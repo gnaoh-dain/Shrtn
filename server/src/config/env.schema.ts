@@ -15,9 +15,12 @@ export const envSchema = z.object({
   THROTTLE_GLOBAL_LIMIT: z.coerce.number().int().positive().default(300),
   THROTTLE_REDIRECT_LIMIT: z.coerce.number().int().positive().default(120),
   THROTTLE_SHORTEN_LIMIT: z.coerce.number().int().positive().default(30),
+  THROTTLE_ANALYTICS_LIMIT: z.coerce.number().int().positive().default(60),
+  THROTTLE_ANALYTICS_TTL_MS: z.coerce.number().int().positive().default(60_000),
 
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(32).default(0),
 
+  CORS_ORIGIN: z.string().default(''),
   JWT_SECRET: z
     .string()
     .min(32, 'JWT_SECRET must be at least 32 characters')

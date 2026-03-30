@@ -3,7 +3,9 @@
  *   SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD
  * If either is missing, seed skips admin (no-op). Run: pnpm db:seed
  */
-import 'dotenv/config';
+import { loadEnvFiles } from '../src/config/load-env';
+
+loadEnvFiles();
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
 import { Pool } from 'pg';
