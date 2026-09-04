@@ -1,10 +1,11 @@
-import { Controller, Post, Get, Param, Body, Redirect, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Redirect, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import type { RequestUser } from 'src/common/guards/roles.guard';
 import { OptionalJwtAuthGuard } from 'src/common/guards/optional-jwt-auth.guard';
 import { env } from '../../config/env';
 import { CreateLinkDto } from './dto/create-link.dto';
+import { UpdateLinkDto } from './dto/update-link.dto';
 import { LinkService } from './link.service';
 import { QueueService } from 'src/queue/queue.service';
 
@@ -23,7 +24,34 @@ export class LinkController {
   async shortenLink(@Body() dto: CreateLinkDto, @Req() req: Request & { user?: RequestUser }) {
     const link = await this.linkService.createShortLink(dto.url, dto.customAlias, req.user?.id);
 
-    return { short_url: `${env.BASE_URL}/${link.short_code}` };
+    return this.linkService.toLinkResponse(link);
+  }
+
+  @Get('shorten/:code')
+  async getLink(@Param('code') code: string) {
+    return this.linkService.getLinkDetail(code);
+  }
+
+  @UseGuards(OptionalJwtAuthGuard)
+  @Put('shorten/:code')
+  async updateLink(
+    @Param('code') code: string,
+    @Body() dto: UpdateLinkDto,
+    @Req() req: Request & { user?: RequestUser },
+  ) {
+    return this.linkService.updateLink(code, dto.url, req.user);
+  }
+
+  @UseGuards(OptionalJwtAuthGuard)
+  @Delete('shorten/:code')
+  @HttpCode(204)
+  async deleteLink(@Param('code') code: string, @Req() req: Request & { user?: RequestUser }) {
+    await this.linkService.deleteLink(code, req.user);
+  }
+
+  @Get('shorten/:code/stats')
+  async getLinkStats(@Param('code') code: string) {
+    return this.linkService.getLinkStats(code);
   }
 
   @Throttle({

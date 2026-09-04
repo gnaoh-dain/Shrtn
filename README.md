@@ -1,6 +1,10 @@
 # Shrtn
 
+### Dự án thực hiện dựa trên đề bài [URL Shortening Service](https://roadmap.sh/projects/url-shortening-service) trên roadmap.sh.
+
 Monorepo gồm API NestJS và frontend Next.js (App Router).
+
+
 
 ## Cấu trúc
 
@@ -8,7 +12,7 @@ Monorepo gồm API NestJS và frontend Next.js (App Router).
 
 Monorepo gồm API NestJS và frontend Next.js (App Router).
 
-> Dự án thực hiện theo đề bài [URL Shortening Service](https://roadmap.sh/projects/url-shortening-service) trên roadmap.sh.
+
 |---------|----------|
 | `server/` | Backend NestJS, Prisma, Redis/BullMQ theo code hiện tại |
 | `client/` | Next.js (App Router), TypeScript, Tailwind, shadcn/ui, TanStack Query, RHF + Zod, Recharts |
